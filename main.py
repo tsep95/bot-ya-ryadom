@@ -1,21 +1,24 @@
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackContext, MessageHandler, filters, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 TOKEN = os.environ.get("BOT_TOKEN") or "PASTE_YOUR_TOKEN_HERE"
 
 user_states = {}
 
-def start(update: Update, context: CallbackContext):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("Да, давай", callback_data="start_diag")],
         [InlineKeyboardButton("Не сейчас", callback_data="not_now")]
     ]
-    update.message.reply_text("Привет. Я рядом. Всё, что ты скажешь здесь — это важно. Давай разберёмся, как ты себя чувствуешь на самом деле. Начнём?", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        "Привет. Я рядом. Всё, что ты скажешь здесь — это важно. Давай разберёмся, как ты себя чувствуешь на самом деле. Начнём?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-def button_handler(update: Update, context: CallbackContext):
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    query.answer()
+    await query.answer()
     user_id = query.from_user.id
 
     if query.data == "start_diag":
@@ -27,7 +30,7 @@ def button_handler(update: Update, context: CallbackContext):
             [InlineKeyboardButton("Просто плохо", callback_data="diag_prosto")],
             [InlineKeyboardButton("Всё нормально, но чего-то не хватает", callback_data="diag_norma")]
         ]
-        query.edit_message_text("Что тебе ближе всего прямо сейчас?", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text("Что тебе ближе всего прямо сейчас?", reply_markup=InlineKeyboardMarkup(keyboard))
     
     elif query.data.startswith("diag_"):
         state = query.data.split("_")[1]
@@ -44,17 +47,17 @@ def button_handler(update: Update, context: CallbackContext):
             text = "Спасибо. Эта часть пока в разработке."
             keyboard = []
 
-        query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard) if keyboard else None)
+        if keyboard:
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        else:
+            await query.edit_message_text(text)
 
-def unknown(update: Update, context: CallbackContext):
-    update.message.reply_text("Я пока не понимаю таких сообщений. Нажми /start, чтобы начать.")
-
-def main():
+async def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown))
-    app.run_polling()
+    await app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())

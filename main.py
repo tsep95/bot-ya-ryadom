@@ -1,7 +1,13 @@
 import os
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+)
 
 TOKEN = os.environ.get("BOT_TOKEN") or "PASTE_YOUR_TOKEN_HERE"
 
@@ -57,8 +63,11 @@ async def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
-    await app.run_polling()
+    await app.initialize()
+    await app.start()
+    print("Бот запущен и ждёт сообщения...")
+    await app.updater.start_polling()
+    await asyncio.Event().wait()  # бесконечное ожидание (бесконечный цикл)
 
-# Запускаем напрямую (без asyncio.run и run_forever!)
 if __name__ == "__main__":
     asyncio.run(main())
